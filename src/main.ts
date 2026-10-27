@@ -10,6 +10,7 @@ import { formatMove, formatMoves, simplify, type Move } from './cube/moves';
 import { formatMac, parseMac } from './gan/crypto';
 import { connectGanCube, isBluetoothAvailable } from './gan/connection';
 import { nameSuffixBytes, type Quaternion } from './gan/protocol';
+import { ScrambleQueue } from './scramble/queue';
 import type { SmartCube, SmartCubeEvent } from './smartcube';
 import { INSPECTION_DNF_MS, INSPECTION_MS, SolveTimer } from './timer/solveTimer';
 import {
@@ -54,7 +55,12 @@ function saveSettings(): void {
 // --- app state ---
 
 const store = new SolveStore();
-const timer = new SolveTimer({ inspection: settings.inspection });
+const scrambles = new ScrambleQueue();
+const timer = new SolveTimer({ inspection: settings.inspection, makeScramble: () => scrambles.take() });
+scrambles.onReady = () => {
+  timer.scrambleReady(state);
+  render();
+};
 const view = new CubeView($<HTMLCanvasElement>('cube-canvas'));
 
 let cube: SmartCube | null = null;
@@ -314,7 +320,7 @@ function render(): void {
   $('disconnect').hidden = !cube;
   $('key-help').hidden = !(cube && isVirtual);
 
-  $<HTMLButtonElement>('new-scramble').disabled = !canScramble();
+  $<HTMLButtonElement>('new-scramble').disabled = !canScramble() || timer.waiting;
   $<HTMLButtonElement>('skip-scramble').disabled = !canScramble() || state === SOLVED;
   $('cancel-attempt').hidden = !isAttempting();
   $('restart-rep').hidden = !drill.running;
@@ -341,6 +347,10 @@ function renderScramble(): void {
   box.classList.toggle('dim', !['scrambling', 'unsolved'].includes(timer.phase));
   if (timer.custom) {
     box.replaceChildren(el('span', 'custom', 'Your own scramble'));
+    return;
+  }
+  if (timer.waiting) {
+    box.replaceChildren(el('span', 'custom', 'Making a scramble…'));
     return;
   }
   const { done, fix } =
@@ -384,6 +394,7 @@ function renderHint(): void {
       parts = ['Solve the cube to start the scramble, or use “I scrambled it myself”.'];
       break;
     case 'scrambling': {
+      if (timer.waiting) break;
       const { fix } = timer.tracker.progress();
       const next = timer.tracker.next();
       warn = fix.length > 0;

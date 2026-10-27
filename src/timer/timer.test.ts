@@ -104,6 +104,22 @@ describe('SolveTimer', () => {
     expect(timer.phase).toBe('scrambling');
   });
 
+  it('waits for a scramble that is still being made', () => {
+    let ready: Move[] | null = null;
+    const timer = new SolveTimer({ inspection: false, makeScramble: () => ready });
+    timer.reset(SOLVED);
+    expect(timer.waiting).toBe(true);
+    // Turns while waiting aren't tracked; the scramble starts once the cube is solved again.
+    let state = turns(timer, SOLVED, [{ face: 'L', amount: 1 }], 0);
+    ready = scramble;
+    timer.scrambleReady(state);
+    expect(timer.waiting).toBe(false);
+    expect(timer.phase).toBe('unsolved');
+    state = turns(timer, state, [{ face: 'L', amount: 3 }], 100);
+    turns(timer, state, quarterTurns(scramble), 200);
+    expect(timer.phase).toBe('ready');
+  });
+
   it('records a custom scramble when skipped', () => {
     const { timer, solves } = connected(false);
     const state = turns(timer, SOLVED, [{ face: 'L', amount: 1 }], 0);

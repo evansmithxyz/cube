@@ -54,8 +54,12 @@ The address is saved in the browser, so you only do this once per cube.
 
 ## A solve
 
-1. Start with a solved cube. The app shows a random 25-turn scramble and highlights the next
-   turn. If you turn the wrong way it tells you what to undo.
+1. Start with a solved cube. The app shows a scramble and highlights the next turn. If you turn
+   the wrong way it tells you what to undo.
+
+   Scrambles are **random-state**, like WCA scrambles: the app picks a cube position uniformly
+   at random, solves it with Kociemba's two-phase algorithm, and shows the solution backwards
+   (21 turns or fewer). Random turns can't make every position equally likely; this does.
 2. When the cube reaches the scrambled state, 15 s WCA inspection starts (switch it off in the
    sidebar). Starting after 15 s is +2, after 17 s DNF.
 3. Your first turn starts the timer; solving the cube stops it.
@@ -114,6 +118,7 @@ No cube? **Virtual cube** works with the keyboard (csTimer layout): `I`/`K` R Râ
 |------|--------------|
 | `src/gan/` | GAN protocols: AES key from MAC (`crypto.ts`), per-generation UUIDs and commands (`generations.ts`), packet decoding and dropped-move recovery (`drivers.ts`), Web Bluetooth connection |
 | `src/cube/` | Moves and the 54-sticker cube state (Kociemba facelet order, same as the cube reports), whole-cube rotations, and full notation (wide, slice, rotations) |
+| `src/scramble/` | Random-state scrambles: cubie model, two-phase solver, and a web worker that keeps a few ready |
 | `src/analysis/` | Method stage definitions, solve splitting, and OLL/PLL case recognition |
 | `src/drill/` | Drill mode: rep detection by the algorithm's effect, presets, rep storage |
 | `src/timer/` | Attempt state machine, scramble tracking, averages, solve storage (`localStorage`) |
@@ -122,7 +127,7 @@ No cube? **Virtual cube** works with the keyboard (csTimer layout): `I`/`K` R Râ
 | `src/main.ts` | Wires cube events to the timer, view and page |
 
 ```bash
-npm test          # unit tests (protocol, cube model, timer, stats)
+npm test          # unit tests (protocol, cube model, solver, timer, stats)
 npm run typecheck
 npm run build     # static site in dist/
 ```

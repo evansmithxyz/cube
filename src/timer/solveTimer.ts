@@ -6,7 +6,7 @@
  */
 
 import { SOLVED, applyMove, applyMoves } from '../cube/facelets';
-import { invert, randomScramble, type Move } from '../cube/moves';
+import { invert, type Move } from '../cube/moves';
 import { ScrambleTracker } from './scrambleTracker';
 import type { Penalty } from './stats';
 
@@ -33,12 +33,15 @@ export interface Attempt {
 
 export interface TimerOptions {
   inspection: boolean;
-  makeScramble?: () => Move[];
+  /** The next scramble, or null while it's still being made (then call scrambleReady). */
+  makeScramble: () => Move[] | null;
 }
 
 export class SolveTimer {
   phase: Phase = 'idle';
   scramble: Move[] = [];
+  /** No scramble yet: it's still being made. */
+  waiting = false;
   tracker!: ScrambleTracker;
   /** Whether the current attempt skipped the generated scramble. */
   custom = false;
@@ -74,6 +77,7 @@ export class SolveTimer {
         if (state === SOLVED) this.reset(state);
         break;
       case 'scrambling':
+        if (this.waiting) break; // scrambleReady starts from whatever state the cube is in
         if (state === SOLVED) this.tracker.restart();
         else this.tracker.turn(move);
         if (state === this.target) this.startInspection(now);
@@ -111,6 +115,13 @@ export class SolveTimer {
   newScramble(state: string): void {
     this.nextScramble();
     this.reset(state);
+  }
+
+  /** A scramble has been made: take it if we're waiting for one (not mid-attempt). */
+  scrambleReady(state: string): void {
+    if (!this.waiting || ['inspection', 'ready', 'solving'].includes(this.phase)) return;
+    this.nextScramble();
+    if (this.phase !== 'idle') this.reset(state);
   }
 
   /** Abandon the current attempt without recording it. */
@@ -154,8 +165,10 @@ export class SolveTimer {
   }
 
   private nextScramble(): void {
-    this.scramble = (this.options.makeScramble ?? randomScramble)();
-    this.target = applyMoves(SOLVED, this.scramble);
+    const scramble = this.options.makeScramble();
+    this.waiting = scramble === null;
+    this.scramble = scramble ?? [];
+    this.target = scramble ? applyMoves(SOLVED, scramble) : ''; // '' matches no state
     this.tracker = new ScrambleTracker(this.scramble);
   }
 }
