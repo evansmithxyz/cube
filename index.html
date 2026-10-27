@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Speedcubing timer for GAN smart cubes, with a live 3D mirror of your cube." />
+    <title>Cube Timer</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-left">
+        <h1 class="brand"><img src="/favicon.svg" alt="" width="22" height="22" />Cube Timer</h1>
+        <div class="mode-switch" role="tablist" aria-label="Mode">
+          <button class="mode" role="tab" data-mode="solve" aria-selected="true">Solve</button>
+          <button class="mode" role="tab" data-mode="drill" aria-selected="false">Drill</button>
+        </div>
+      </div>
+      <div class="connection">
+        <span id="cube-status" class="status">No cube connected</span>
+        <button id="connect-gan" class="primary">Connect GAN cube</button>
+        <button id="connect-virtual">Virtual cube</button>
+        <button id="disconnect" hidden>Disconnect</button>
+      </div>
+    </header>
+
+    <div id="notice" class="notice" role="alert" hidden>
+      <span id="notice-text"></span>
+      <button id="notice-close" class="icon" aria-label="Dismiss">×</button>
+    </div>
+
+    <main class="layout">
+      <section class="stage">
+        <div id="scramble" class="scramble solve-only"></div>
+        <div class="drill-head drill-only">
+          <div class="drill-picker">
+            <select id="drill-select" aria-label="Algorithm to drill"></select>
+            <button id="add-alg">Add algorithm</button>
+          </div>
+          <div id="drill-alg" class="drill-alg"></div>
+        </div>
+        <p id="hint" class="hint" aria-live="polite"></p>
+        <div id="clock" class="clock">0.00</div>
+        <div id="splits" class="splits solve-only"></div>
+        <div id="drill-stats" class="splits drill-only"></div>
+        <div class="viewport">
+          <canvas id="cube-canvas" aria-label="3D view of the cube"></canvas>
+          <p id="align-hint" class="view-hint" hidden>
+            To line up the 3D cube with yours, hold it white side up with green facing you, then click
+            <strong>Reset view</strong>.
+          </p>
+          <button id="reset-view" class="view-button" title="Hold the cube white side up, green side facing you, then click">
+            Reset view
+          </button>
+        </div>
+        <div class="actions">
+          <button id="new-scramble" class="solve-only">New scramble</button>
+          <button id="skip-scramble" class="solve-only">I scrambled it myself</button>
+          <button id="cancel-attempt" class="solve-only" hidden>Cancel attempt <kbd>Esc</kbd></button>
+          <button id="restart-rep" class="drill-only" hidden>Restart rep <kbd>Esc</kbd></button>
+          <button id="mark-solved" title="Tell the cube its current state is solved">Mark cube as solved</button>
+        </div>
+        <p id="key-help" class="key-help" hidden>
+          Virtual cube keys:
+          <span><kbd>I</kbd><kbd>K</kbd> R R′</span>
+          <span><kbd>J</kbd><kbd>F</kbd> U U′</span>
+          <span><kbd>H</kbd><kbd>G</kbd> F F′</span>
+          <span><kbd>D</kbd><kbd>E</kbd> L L′</span>
+          <span><kbd>S</kbd><kbd>L</kbd> D D′</span>
+          <span><kbd>W</kbd><kbd>O</kbd> B B′</span>
+          · drag the cube to look around
+        </p>
+      </section>
+
+      <aside class="sidebar">
+        <section class="panel drill-only">
+          <div class="panel-head">
+            <h2 id="rep-title">Reps</h2>
+            <button id="clear-reps" class="link">Clear reps</button>
+          </div>
+          <div class="solve-scroll">
+            <table class="data-table">
+              <thead>
+                <tr><th>#</th><th>Time</th><th>TPS</th><th>ao5</th></tr>
+              </thead>
+              <tbody id="rep-list"></tbody>
+            </table>
+            <p id="no-reps" class="muted empty">Reps of this algorithm will show up here.</p>
+          </div>
+          <button id="delete-alg" class="link danger" hidden>Delete this algorithm</button>
+        </section>
+        <section class="panel drill-only">
+          <h2>Drilled algorithms</h2>
+          <table class="data-table">
+            <thead>
+              <tr><th>Algorithm</th><th>Reps</th><th>Best</th><th>ao5</th><th>Mean</th></tr>
+            </thead>
+            <tbody id="drill-overview"></tbody>
+          </table>
+          <p id="no-drills" class="muted empty">Slowest first. Click one to drill it.</p>
+        </section>
+        <section class="panel solve-only">
+          <table class="stats">
+            <thead>
+              <tr><th></th><th>Current</th><th>Best</th></tr>
+            </thead>
+            <tbody id="stats"></tbody>
+          </table>
+          <p id="stats-summary" class="muted"></p>
+        </section>
+        <label class="setting solve-only">
+          <input type="checkbox" id="inspection-toggle" />
+          15 s inspection (WCA penalties)
+        </label>
+        <label class="setting solve-only">
+          Split solves by
+          <select id="method-select">
+            <option value="cfop">CFOP</option>
+            <option value="lbl">Layer by layer</option>
+            <option value="roux">Roux</option>
+            <option value="none">No splits</option>
+          </select>
+        </label>
+        <section class="panel solves solve-only">
+          <div class="tabs" role="tablist">
+            <button class="tab" role="tab" data-tab="solves" aria-selected="true">Solves</button>
+            <button class="tab" role="tab" data-tab="stages" aria-selected="false">Stages</button>
+            <button class="tab" role="tab" data-tab="cases" aria-selected="false">Algorithms</button>
+            <button id="clear-solves" class="link">Clear all</button>
+          </div>
+          <div class="solve-scroll" data-panel="solves">
+            <table class="solve-table">
+              <thead>
+                <tr><th>#</th><th>Time</th><th>ao5</th><th>ao12</th></tr>
+              </thead>
+              <tbody id="solve-list"></tbody>
+            </table>
+            <p id="no-solves" class="muted empty">Your solves will show up here.</p>
+          </div>
+          <div class="solve-scroll" data-panel="stages" hidden>
+            <table class="data-table">
+              <thead>
+                <tr><th>Stage</th><th>Look</th><th>Turn</th><th>Mean</th><th>Best</th></tr>
+              </thead>
+              <tbody id="stage-stats"></tbody>
+            </table>
+            <p class="muted empty">Look: pause before the stage's first turn. Turn: from there to the stage being done.</p>
+          </div>
+          <div class="solve-scroll" data-panel="cases" id="case-stats" hidden></div>
+        </section>
+      </aside>
+    </main>
+
+    <dialog id="alg-dialog">
+      <form method="dialog" id="alg-form">
+        <h2>Add an algorithm</h2>
+        <label class="field">
+          Name
+          <input id="alg-name" placeholder="e.g. OLL 21" autocomplete="off" />
+        </label>
+        <label class="field">
+          Algorithm
+          <input id="alg-text" placeholder="R U2 R' U' R U R' U' R U' R'" autocomplete="off" spellcheck="false" />
+        </label>
+        <p class="muted">
+          Standard notation: face turns (R U' F2), wide turns (r or Rw), slices (M E S) and rotations (x y z).
+          Any way of getting the same result counts when you drill it.
+        </p>
+        <p id="alg-error" class="error"></p>
+        <menu>
+          <button value="cancel" formnovalidate>Cancel</button>
+          <button value="ok" class="primary">Add</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <dialog id="mac-dialog">
+      <form method="dialog" id="mac-form">
+        <h2>Enter your cube's MAC address</h2>
+        <p>
+          GAN cubes encrypt their data with a key based on the cube's Bluetooth MAC address,
+          and this browser can't read it automatically. You only need to do this once.
+        </p>
+        <label class="field">
+          MAC address of <strong id="mac-device"></strong>
+          <input id="mac-input" placeholder="AB:CD:EF:12:34:56" autocomplete="off" spellcheck="false" />
+        </label>
+        <p id="mac-error" class="error"></p>
+        <details>
+          <summary>How do I find it?</summary>
+          <ul>
+            <li>
+              <strong>Easiest:</strong> turn on <code>chrome://flags/#enable-experimental-web-platform-features</code>
+              (in Edge: <code>edge://flags</code>), restart the browser, and reconnect. The address is then read
+              automatically.
+            </li>
+            <li>
+              Or open <code>chrome://bluetooth-internals/#devices</code>, click <em>Start scan</em>, turn a face to wake
+              the cube, and copy the address listed next to its name.
+            </li>
+            <li>The last four characters of the cube's name (GANi4_<strong>AEC3</strong>) are the end of the address.</li>
+          </ul>
+        </details>
+        <menu>
+          <button value="cancel" formnovalidate>Cancel</button>
+          <button value="ok" class="primary">Connect</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <dialog id="solve-dialog">
+      <form method="dialog">
+        <h2 id="solve-title"></h2>
+        <div id="solve-time" class="solve-time"></div>
+        <div class="penalties" role="radiogroup" aria-label="Penalty">
+          <label><input type="radio" name="penalty" value="ok" /> OK</label>
+          <label><input type="radio" name="penalty" value="+2" /> +2</label>
+          <label><input type="radio" name="penalty" value="dnf" /> DNF</label>
+        </div>
+        <dl class="solve-details">
+          <dt>Scramble</dt>
+          <dd id="solve-scramble" class="mono"></dd>
+          <dt>Turns</dt>
+          <dd id="solve-turns"></dd>
+          <dt>Solution</dt>
+          <dd id="solve-solution" class="mono"></dd>
+          <dt id="solve-splits-title">Splits</dt>
+          <dd id="solve-splits-box">
+            <table class="data-table split-table">
+              <thead>
+                <tr><th>Stage</th><th>Look</th><th>Turn</th><th>Time</th><th>Turns</th></tr>
+              </thead>
+              <tbody id="solve-splits"></tbody>
+            </table>
+          </dd>
+          <dt>Date</dt>
+          <dd id="solve-date"></dd>
+        </dl>
+        <menu>
+          <button type="button" id="delete-solve" class="danger">Delete</button>
+          <button value="close" class="primary">Close</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
