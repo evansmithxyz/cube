@@ -3,6 +3,7 @@
 import type { LastLayerCase } from '../analysis/cases';
 import type { Method } from '../analysis/methods';
 import type { StageSplit } from '../analysis/splits';
+import { caseFor } from '../teach/algs';
 import { formatTime } from '../timer/stats';
 import { el } from './dom';
 
@@ -37,11 +38,17 @@ export function ollDiagram(key: string, size = 40): SVGSVGElement {
   return svg;
 }
 
-function caseLabel(found: LastLayerCase | undefined, diagramSize: number): Node | null {
+/** A case as its PLL name or OLL diagram (with its number, if `numbered`). */
+function caseLabel(found: LastLayerCase | undefined, diagramSize: number, numbered = false): Node | null {
   if (!found || found.id === '?') return null;
   if (found.id === 'skip') return el('span', 'case', 'skip');
   if (found.kind === 'pll') return el('span', 'case', found.id);
-  return ollDiagram(found.id, diagramSize);
+  const diagram = ollDiagram(found.id, diagramSize);
+  const info = numbered ? caseFor(found) : undefined;
+  if (!info) return diagram;
+  const label = el('span', 'case-label');
+  label.append(diagram, el('span', 'case', info.name.replace('OLL ', '')));
+  return label;
 }
 
 /** Compact chips under the clock: each finished stage and how long it took. */
@@ -64,7 +71,7 @@ export function renderSplitRows(tbody: HTMLElement, splits: StageSplit[]): void 
       const row = document.createElement('tr');
       const name = el('td', '');
       const inner = el('span', 'stage-cell', split.stage);
-      const label = caseLabel(split.case, 22);
+      const label = caseLabel(split.case, 22, true);
       if (label) inner.append(label);
       name.append(inner);
       const skipped = split.turns === 0;
@@ -138,8 +145,16 @@ export function renderCaseStats(container: HTMLElement, method: Method, analyses
         .sort((a, b) => b.total - a.total);
       for (const { id, splits } of rows) {
         const row = document.createElement('tr');
+        const info = caseFor({ kind: stage.caseKind!, id });
+        if (info) {
+          // opens the algorithm sheet at this case
+          row.className = 'pick';
+          row.tabIndex = 0;
+          row.dataset.case = info.id;
+          row.title = `${info.name}: see or change its algorithm`;
+        }
         const label = el('td', '');
-        label.append(caseLabel({ kind: stage.caseKind!, id }, 30)!);
+        label.append(caseLabel({ kind: stage.caseKind!, id }, 30, true)!);
         row.append(
           label,
           el('td', '', String(splits.length)),

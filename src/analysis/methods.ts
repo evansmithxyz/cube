@@ -45,6 +45,12 @@ const solved = (state: string, slots: number[]) => slots.every((i) => state[i] =
 const allTop = (state: string, slots: number[]) => slots.every((i) => state[i] === 'U');
 const pairsSolved = (state: string) => PAIRS.filter((pair) => solved(state, pair)).length;
 
+// CFOP milestones, seen with the cross face down.
+export const crossDone = (state: string) => solved(state, CROSS);
+export const f2lDone = (state: string) => crossDone(state) && pairsSolved(state) === 4;
+/** F2L done and the whole top face showing the top colour. */
+export const ollDone = (state: string) => f2lDone(state) && allTop(state, TOP_FACE);
+
 function turned(state: string, face: Face, quarterTurns: number): string {
   const amount = ((quarterTurns % 4) + 4) % 4;
   return amount ? applyMove(state, { face, amount: amount as 1 | 2 | 3 }) : state;
@@ -58,8 +64,8 @@ const OFFSETS = [0, 1, 2, 3];
  */
 const alignBlocks = (state: string, k: number) => turned(turned(state, 'L', k), 'R', -k);
 
-// Every face as the base (down), for cross-based methods.
-const BASE_DOWN = FACES.map((face) => findRotation([face, 'D']));
+/** Every face as the base (down), for cross-based methods. */
+export const BASE_DOWN = FACES.map((face) => findRotation([face, 'D']));
 // Every block side (left) with every adjacent base (down), for Roux.
 const BLOCK_LEFT = FACES.flatMap((side) =>
   FACES.filter((base) => !sameAxis(side, base)).map((base) => findRotation([side, 'L'], [base, 'D'])),
@@ -77,11 +83,7 @@ const cfop: Method = {
       name: `F2L ${n}`,
       done: (s: string) => solved(s, CROSS) && pairsSolved(s) >= n,
     })),
-    {
-      name: 'OLL',
-      caseKind: 'oll',
-      done: (s) => solved(s, CROSS) && pairsSolved(s) === 4 && allTop(s, TOP_FACE),
-    },
+    { name: 'OLL', caseKind: 'oll', done: ollDone },
     { name: 'PLL', caseKind: 'pll', done: (s) => s === SOLVED },
   ],
 };

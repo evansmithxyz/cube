@@ -62,3 +62,10 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## J Perm's algorithm lists
+
+The default OLL and PLL algorithms the last-layer coach shows (`src/teach/algs.ts`), with
+their case names and groups, are the ones listed at
+[jperm.net/algs/oll](https://jperm.net/algs/oll) and
+[jperm.net/algs/pll](https://jperm.net/algs/pll).

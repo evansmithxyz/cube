@@ -31,7 +31,10 @@
 
     <main class="layout">
       <section class="stage">
-        <div id="scramble" class="scramble solve-only"></div>
+        <div class="stage-top solve-only">
+          <div id="scramble" class="scramble"></div>
+          <div id="coach" class="coach" hidden></div>
+        </div>
         <div class="drill-head drill-only">
           <div class="drill-picker">
             <select id="drill-select" aria-label="Algorithm to drill"></select>
@@ -121,6 +124,16 @@
             <option value="none">No splits</option>
           </select>
         </label>
+        <div class="setting solve-only">
+          <label for="coach-select">Show algorithms for</label>
+          <select id="coach-select" title="At the last layer, show the case and its algorithm above the clock">
+            <option value="both">OLL and PLL</option>
+            <option value="oll">OLL only</option>
+            <option value="pll">PLL only</option>
+            <option value="off">Neither</option>
+          </select>
+        </div>
+        <button id="open-sheet" class="link setting-link solve-only">Your OLL and PLL algorithms</button>
         <section class="panel solves solve-only">
           <div class="tabs" role="tablist">
             <button class="tab" role="tab" data-tab="solves" aria-selected="true">Solves</button>
@@ -150,6 +163,23 @@
         </section>
       </aside>
     </main>
+
+    <dialog id="sheet-dialog" class="sheet-dialog" aria-labelledby="sheet-title">
+      <div class="sheet-head">
+        <h2 id="sheet-title">OLL and PLL algorithms</h2>
+        <button class="icon" data-close aria-label="Close">×</button>
+      </div>
+      <p class="muted sheet-intro">
+        When a solve reaches the last layer, the algorithm for your case shows above the clock. These start as
+        J Perm's (jperm.net); change any of them to the one you use. Each picture shows the case the way its
+        algorithm expects to find it.
+      </p>
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" data-sheet="oll" aria-selected="true">OLL</button>
+        <button class="tab" role="tab" data-sheet="pll" aria-selected="false">PLL</button>
+      </div>
+      <div id="sheet-list" class="sheet-list"></div>
+    </dialog>
 
     <dialog id="alg-dialog">
       <form method="dialog" id="alg-form">

@@ -82,8 +82,34 @@ splits show under the clock during a solve, in each solve's details, and average
 **Stages** tab. Switching method re-splits every saved solve.
 
 With CFOP the app also recognises your **OLL and PLL cases** (PLLs by name, e.g. T or Ua; OLLs
-as the usual top-down diagram), from any angle and with any AUF. The **Algorithms** tab lists
-each case you've had with its count, average look and turn time, and best, slowest first.
+by number with the usual top-down diagram), from any angle and with any AUF. The **Algorithms**
+tab lists each case you've had with its count, average look and turn time, and best, slowest
+first. Click one to see or change its algorithm.
+
+## Last-layer coach
+
+To learn OLL and PLL by doing, the app shows the algorithm for your case the moment a solve
+reaches the last layer. When F2L is done, the OLL takes the scramble's place above the clock
+(its number, a diagram and the algorithm); once OLL is done, the PLL. Your cross can be any
+colour.
+
+- The diagram shows the case the way the algorithm expects to find it: turn the top (or the
+  whole cube) until yours looks the same, then go.
+- As you turn, the moves you've done dim and the next one is underlined. Half turns can go
+  either way, and slice moves (M) count in whichever order the cube reports their two sides.
+- Start from the wrong side and it says so straight away, with the turns to get back
+  ("Wrong angle. Do R' U2, then start again"). A wrong turn gets "Undo: F'".
+- When only the top is left to turn, it says which way ("Finish with U'").
+- If an algorithm goes wrong but F2L survives, it switches to the case you ended up with.
+
+The algorithms start as J Perm's ([jperm.net/algs](https://jperm.net/algs/oll)). Open **Your OLL
+and PLL algorithms** in the sidebar (or click a case in the **Algorithms** tab) to change any of
+them to the one you use. It has to solve that case, and the diagram turns to match it.
+**Show algorithms for** picks OLL and PLL, just one, or neither, so you can switch off the set
+you already know.
+
+To practise one case, turn the cube into it yourself (for example by doing its algorithm
+backwards), click **I scrambled it myself**, and the case shows during inspection.
 
 ## Drill mode
 
@@ -120,6 +146,7 @@ No cube? **Virtual cube** works with the keyboard (csTimer layout): `I`/`K` R Râ
 | `src/cube/` | Moves and the 54-sticker cube state (Kociemba facelet order, same as the cube reports), whole-cube rotations, and full notation (wide, slice, rotations) |
 | `src/scramble/` | Random-state scrambles: cubie model, two-phase solver, and a web worker that keeps a few ready |
 | `src/analysis/` | Method stage definitions, solve splitting, and OLL/PLL case recognition |
+| `src/teach/` | Last-layer coach: the 57 OLLs and 21 PLLs with default algorithms, following you through an algorithm (any angle and AUF), your own algorithms |
 | `src/drill/` | Drill mode: rep detection by the algorithm's effect, presets, rep storage |
 | `src/timer/` | Attempt state machine, scramble tracking, averages, solve storage (`localStorage`) |
 | `src/view/cubeView.ts` | Three.js rendering with animated layer turns and gyro orientation |
@@ -127,7 +154,7 @@ No cube? **Virtual cube** works with the keyboard (csTimer layout): `I`/`K` R Râ
 | `src/main.ts` | Wires cube events to the timer, view and page |
 
 ```bash
-npm test          # unit tests (protocol, cube model, solver, timer, stats)
+npm test          # unit tests (protocol, cube model, solver, timer, stats, coach)
 npm run typecheck
 npm run build     # static site in dist/
 ```

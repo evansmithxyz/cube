@@ -244,6 +244,75 @@ body:not([data-mode='drill']) .drill-only {
   color: var(--muted);
 }
 
+/* The scramble, or once a solve reaches the last layer, the coach's card: one slot so nothing jumps. */
+.stage-top {
+  display: grid;
+  place-items: center;
+  min-height: 88px;
+  width: 100%;
+  max-width: 760px;
+}
+
+.coach {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-width: 0;
+}
+.coach svg {
+  flex: none;
+}
+.coach-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.coach-title {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0 8px;
+  font-size: 14px;
+}
+.coach-name {
+  font-weight: 650;
+}
+.coach-group {
+  color: var(--muted);
+}
+.coach-alg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.5em;
+  font-family: var(--mono);
+  font-size: clamp(18px, 2.5vw, 26px);
+  line-height: 1.55;
+}
+.coach-alg .rotation {
+  color: var(--muted);
+  font-style: italic;
+}
+.coach-alg .done {
+  opacity: 0.35;
+}
+.coach-alg .current {
+  color: var(--accent);
+  font-weight: 700;
+  font-style: normal;
+  border-bottom: 2px solid currentColor;
+}
+@media (max-width: 520px) {
+  .coach {
+    gap: 12px;
+  }
+  .coach svg {
+    width: 60px;
+    height: 60px;
+  }
+}
+
 .drill-head {
   display: flex;
   flex-direction: column;
@@ -329,6 +398,17 @@ body:not([data-mode='drill']) .drill-only {
 }
 .oll-off {
   fill: color-mix(in srgb, var(--muted) 35%, var(--surface));
+}
+.pll-arrow {
+  fill: #17191e;
+  stroke: #17191e;
+  stroke-width: 1.3;
+  stroke-linecap: round;
+}
+.case-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .viewport {
@@ -461,6 +541,10 @@ select {
 }
 .setting select {
   margin-left: auto;
+}
+.setting-link {
+  align-self: flex-end;
+  margin: -8px 4px 0 0;
 }
 
 .tabs {
@@ -621,6 +705,103 @@ menu {
   min-height: 1.2em;
   margin: 6px 0;
   color: var(--bad);
+}
+
+/* --- algorithm sheet --- */
+
+.sheet-dialog {
+  max-width: 960px;
+  padding: 18px 20px 20px;
+}
+.sheet-dialog[open] {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: min(880px, calc(100vh - 40px));
+}
+.sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+dialog .sheet-head h2 {
+  margin: 0;
+}
+dialog p.sheet-intro {
+  margin: 0;
+  font-size: 13px;
+}
+.sheet-dialog .tabs {
+  margin: 0;
+}
+.sheet-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  align-content: start;
+  gap: 8px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 2px;
+}
+.sheet-case {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.sheet-case.flash {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.sheet-case svg {
+  flex: none;
+}
+.sheet-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+.sheet-title {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0 8px;
+  font-size: 14px;
+}
+.sheet-title .muted {
+  font-size: 12.5px;
+}
+.sheet-alg {
+  font-size: 14px;
+  line-height: 1.45;
+  word-spacing: 0.12em;
+}
+.sheet-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.sheet-input {
+  width: 100%;
+  padding: 6px 8px;
+  font: 14px var(--mono);
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.sheet-body .error {
+  min-height: 0;
+  margin: 0;
+  font-size: 13px;
+}
+button.small {
+  font-size: 13px;
+  padding: 4px 12px;
 }
 
 .solve-time {

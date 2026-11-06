@@ -23,7 +23,11 @@ import {
   type Penalty,
 } from './timer/stats';
 import { SolveStore, decodeMoves, startState, type Solve } from './timer/store';
+import { LastLayerCoach } from './teach/coach';
+import { LastLayerAlgStore } from './teach/store';
+import { AlgSheet } from './ui/algSheet';
 import { renderCaseStats, renderSplitChips, renderSplitRows, renderStageStats } from './ui/analysisView';
+import { coachHint, renderCoach } from './ui/coachView';
 import { $, el } from './ui/dom';
 import { CubeView } from './view/cubeView';
 import { connectVirtualCube } from './virtualCube';
@@ -32,7 +36,15 @@ import { connectVirtualCube } from './virtualCube';
 
 const SETTINGS_KEY = 'cube-timer:settings:v1';
 type Mode = 'solve' | 'drill';
-const DEFAULT_SETTINGS = { inspection: true, method: 'cfop' as MethodId, mode: 'solve' as Mode, drillAlg: 'pll-T' };
+/** Which last-layer cases the coach shows algorithms for. */
+type CoachSetting = 'both' | 'oll' | 'pll' | 'off';
+const DEFAULT_SETTINGS = {
+  inspection: true,
+  method: 'cfop' as MethodId,
+  mode: 'solve' as Mode,
+  drillAlg: 'pll-T',
+  coach: 'both' as CoachSetting,
+};
 
 function loadSettings(): typeof DEFAULT_SETTINGS {
   try {
@@ -151,6 +163,27 @@ function trackSplits(move: Move, wasSolving: boolean, now: number): void {
   if (liveSplits && (wasSolving || timer.phase === 'solving')) liveSplits.turn(move, now - timer.solveStart);
 }
 
+// --- last-layer coach ---
+
+const llAlgs = new LastLayerAlgStore();
+const coach = new LastLayerCoach({
+  teaches: (kind) => settings.coach === 'both' || settings.coach === kind,
+  algFor: (info) => llAlgs.algFor(info),
+});
+/** Whether the coach is following an attempt: from inspection until the solve ends. */
+let coaching = false;
+
+/** Start or stop the coach with the attempt, and give it the solve's turns. */
+function updateCoach(move: Move | null): void {
+  const attempting = settings.mode === 'solve' && isAttempting();
+  if (attempting && !coaching) coach.start(state); // e.g. you scrambled to a last-layer case yourself
+  if (!attempting && coaching) coach.stop();
+  coaching = attempting;
+  if (coaching && move && timer.phase === 'solving') coach.turn(move, state);
+}
+
+const sheet = new AlgSheet($<HTMLDialogElement>('sheet-dialog'), $('sheet-list'), llAlgs);
+
 // --- cube events ---
 
 function onCubeEvent(event: SmartCubeEvent): void {
@@ -167,6 +200,7 @@ function onCubeEvent(event: SmartCubeEvent): void {
         const wasSolving = timer.phase === 'solving';
         timer.turn(move, state, now);
         trackSplits(move, wasSolving, now);
+        updateCoach(move);
       }
       break;
     }
@@ -182,6 +216,7 @@ function onCubeEvent(event: SmartCubeEvent): void {
         state = event.facelets;
         view.setState(state);
         timer.replaceState(state, now);
+        if (coaching) coach.resync(state);
         drill.cancel();
       }
       break;
@@ -303,6 +338,7 @@ const isAttempting = () => ['inspection', 'ready', 'solving'].includes(timer.pha
 const canScramble = () => timer.phase === 'scrambling' || timer.phase === 'unsolved';
 
 function render(): void {
+  updateCoach(null); // the attempt may have started or ended without a turn (a button, a resync)
   const status = $('cube-status');
   status.textContent = cube
     ? cube.name + (battery !== null ? ` · battery ${battery}%` : '')
@@ -327,8 +363,17 @@ function render(): void {
   $<HTMLButtonElement>('mark-solved').disabled = !cube || (settings.mode === 'solve' && timer.phase === 'solving');
 
   renderScramble();
+  renderCoachCard();
   renderHint();
   renderLiveSplits();
+}
+
+/** The coach's card takes the scramble's place once the solve reaches the last layer. */
+function renderCoachCard(): void {
+  const coachView = coaching ? coach.view : null;
+  $('coach').hidden = !coachView;
+  $('scramble').hidden = !!coachView;
+  if (coachView) renderCoach($('coach'), coachView);
 }
 
 /** Splits under the clock: the solve in progress, or else the last one saved. */
@@ -413,6 +458,8 @@ function renderHint(): void {
       parts = [];
       break;
   }
+  const said = coaching ? coach.view?.hint : null;
+  if (said) ({ parts, warn } = coachHint(said));
   hint.classList.toggle('warn', warn);
   hint.replaceChildren(...parts);
 }
@@ -656,7 +703,7 @@ methodSelect.addEventListener('change', () => {
   methodSelect.blur(); // so cube keys don't also pick a method by letter
 });
 
-const tabs = document.querySelectorAll<HTMLButtonElement>('.tab');
+const tabs = document.querySelectorAll<HTMLButtonElement>('.tab[data-tab]');
 for (const tab of tabs) {
   tab.addEventListener('click', () => {
     for (const other of tabs) other.setAttribute('aria-selected', String(other === tab));
@@ -695,6 +742,27 @@ inspectionToggle.addEventListener('change', () => {
   timer.options.inspection = settings.inspection;
   saveSettings();
 });
+
+const coachSelect = $<HTMLSelectElement>('coach-select');
+coachSelect.value = settings.coach;
+coachSelect.addEventListener('change', () => {
+  settings.coach = coachSelect.value as CoachSetting;
+  saveSettings();
+  render();
+  coachSelect.blur(); // so cube keys don't also pick an option by letter
+});
+
+$('open-sheet').addEventListener('click', () => sheet.open());
+// a case in the Algorithms tab opens the sheet at it
+$('case-stats').addEventListener('click', (event) => {
+  const row = (event.target as HTMLElement).closest<HTMLElement>('tr[data-case]');
+  if (row) sheet.open(row.dataset.case);
+});
+$('case-stats').addEventListener('keydown', (event) => {
+  const row = (event.target as HTMLElement).closest<HTMLElement>('tr[data-case]');
+  if (event.key === 'Enter' && row) sheet.open(row.dataset.case);
+});
+$('sheet-dialog').addEventListener('close', () => render()); // an algorithm may have changed
 
 $('clear-solves').addEventListener('click', () => {
   if (store.solves.length && confirm(`Delete all ${store.solves.length} solves?`)) {
